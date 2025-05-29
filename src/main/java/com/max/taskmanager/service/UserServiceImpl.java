@@ -23,6 +23,9 @@ public class UserServiceImpl implements UserService {
                 user.getPassword() == null || user.getPassword().isEmpty()) {
             throw new IllegalArgumentException("Username and password cannot be empty.");
         }
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("User with username " + user.getUsername() + " already exists.");
+        }
         return userRepository.save(user);
     }
 

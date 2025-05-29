@@ -1,11 +1,13 @@
 package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+// import org.springframework.stereotype.Repository; // @Repository здесь опционален, JpaRepository уже является компонентом
+
 import java.util.Optional;
 
-public interface UserRepository {
-    User save(User user);
-    Optional<User> findById(Long id);
+public interface UserRepository extends JpaRepository<User, Long> { // Указываем тип сущности и тип ID
+
     Optional<User> findByUsername(String username);
-    // В реальном приложении здесь были бы методы для получения всех пользователей, но для логина это не нужно
+
 }

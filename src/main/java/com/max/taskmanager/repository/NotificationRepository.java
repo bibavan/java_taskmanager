@@ -1,12 +1,13 @@
 package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.Notification;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface NotificationRepository {
-    Notification save(Notification notification);
-    Optional<Notification> findById(Long id); // Может понадобиться для маркировки как прочитанное
+import java.util.List;
+
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
+
     List<Notification> findAllByUserId(Long userId);
+
     List<Notification> findAllByUserIdAndReadFalse(Long userId);
 }
