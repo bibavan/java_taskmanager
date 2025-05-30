@@ -61,7 +61,7 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registrationRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(status().reason("Username already exists"));
+                .andExpect(jsonPath("$.message").value("Username already exists"));
     }
 
     @Test
@@ -93,6 +93,7 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Invalid username or password"));
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
 } 

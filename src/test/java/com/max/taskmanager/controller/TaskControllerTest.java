@@ -51,11 +51,13 @@ class TaskControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.findAndRegisterModules(); // Good practice to register all modules
 
-        task1 = new Task(1L, testUserId, "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
+        task1 = new Task(testUserId, "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
+        task1.setId(1L);
         task1.setCreationDate(LocalDateTime.now());
         task1.setStatus(TaskStatus.PENDING);
 
-        task2 = new Task(2L, testUserId, "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
+        task2 = new Task(testUserId, "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
+        task2.setId(2L);
         task2.setCreationDate(LocalDateTime.now());
         task2.setStatus(TaskStatus.COMPLETED);
     }
@@ -68,7 +70,8 @@ class TaskControllerTest {
         LocalDateTime targetDate = LocalDateTime.of(2025, 1, 1, 10, 0);
         createTaskRequest.setTargetDate(targetDate);
 
-        Task createdTask = new Task(3L, testUserId, "New Task", "New Description", targetDate);
+        Task createdTask = new Task(testUserId, "New Task", "New Description", targetDate);
+        createdTask.setId(3L);
         createdTask.setCreationDate(LocalDateTime.now());
         createdTask.setStatus(TaskStatus.PENDING);
 
@@ -171,9 +174,10 @@ class TaskControllerTest {
         UpdateTaskStatusRequest statusRequest = new UpdateTaskStatusRequest();
         statusRequest.setStatus(TaskStatus.COMPLETED);
 
-        Task updatedTask = new Task(task1.getId(), testUserId, task1.getTitle(), task1.getDescription(), task1.getTargetDate());
+        Task updatedTask = new Task(testUserId, task1.getTitle(), task1.getDescription(), task1.getTargetDate());
+        updatedTask.setId(task1.getId());
         updatedTask.setStatus(TaskStatus.COMPLETED);
-        updatedTask.setCreationDate(task1.getCreationDate()); // Keep original creation date
+        updatedTask.setCreationDate(task1.getCreationDate());
 
         when(taskService.updateTaskStatus(task1.getId(), testUserId, TaskStatus.COMPLETED))
             .thenReturn(Optional.of(updatedTask));

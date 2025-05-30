@@ -43,11 +43,13 @@ class NotificationServiceImplTest {
     void setUp() {
         testUser = new User(1L, "testuser", "password");
 
-        testNotification1 = new Notification(1L, 1L, "Notification 1");
+        testNotification1 = new Notification(1L, "Notification 1");
+        testNotification1.setId(1L);
         testNotification1.setRead(false);
         testNotification1.setCreationDate(LocalDateTime.now().minusHours(1));
 
-        testNotification2 = new Notification(2L, 1L, "Notification 2");
+        testNotification2 = new Notification(1L, "Notification 2");
+        testNotification2.setId(2L);
         testNotification2.setRead(true);
         testNotification2.setCreationDate(LocalDateTime.now().minusHours(2));
     }
@@ -57,8 +59,9 @@ class NotificationServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
             Notification n = invocation.getArgument(0);
-            if (n.getId() == null) n.setId(3L);
-            // n.setCreationDate(LocalDateTime.now()); // This is set in service impl
+            if (n.getId() == null && "New Notification".equals(n.getMessage())) {
+                n.setId(3L);
+            }
             return n;
         });
 
@@ -67,7 +70,7 @@ class NotificationServiceImplTest {
         assertNotNull(result);
         assertEquals("New Notification", result.getMessage());
         assertFalse(result.isRead());
-        assertNotNull(result.getCreationDate()); // Verifies creation date is set by service
+        assertNotNull(result.getCreationDate());
         verify(userRepository, times(1)).findById(1L);
         verify(notificationRepository, times(1)).save(any(Notification.class));
     }
@@ -115,7 +118,6 @@ class NotificationServiceImplTest {
 
     @Test
     void markAsRead_whenNotificationExistsAndBelongsToUserAndUnread_shouldMarkAsRead() {
-        // Ensure testNotification1 is unread for this test
         testNotification1.setRead(false);
         when(notificationRepository.findById(1L)).thenReturn(Optional.of(testNotification1)); 
         when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification1);
@@ -130,7 +132,6 @@ class NotificationServiceImplTest {
 
     @Test
     void markAsRead_whenNotificationAlreadyRead_shouldReturnEmptyOptionalWithoutSaving() {
-        // testNotification2 is already read
         when(notificationRepository.findById(2L)).thenReturn(Optional.of(testNotification2));
 
         Optional<Notification> result = notificationService.markAsRead(2L, 1L);
@@ -147,17 +148,18 @@ class NotificationServiceImplTest {
         Optional<Notification> result = notificationService.markAsRead(99L, 1L);
 
         assertFalse(result.isPresent());
-        verify(notificationRepository, times(1)).findById(99L); // findById is called
-        verify(notificationRepository, never()).save(any(Notification.class)); // but save is not
+        verify(notificationRepository, times(1)).findById(99L);
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
     void markAsRead_whenNotificationDoesNotBelongToUser_shouldReturnEmpty() {
-        Notification otherUserNotification = new Notification(3L, 2L, "Other user's notification");
+        Notification otherUserNotification = new Notification(2L, "Other user's notification");
+        otherUserNotification.setId(3L);
         otherUserNotification.setRead(false);
         when(notificationRepository.findById(3L)).thenReturn(Optional.of(otherUserNotification));
 
-        Optional<Notification> result = notificationService.markAsRead(3L, 1L); // User 1 tries to read User 2's notification
+        Optional<Notification> result = notificationService.markAsRead(3L, 1L);
 
         assertFalse(result.isPresent());
         verify(notificationRepository, times(1)).findById(3L);

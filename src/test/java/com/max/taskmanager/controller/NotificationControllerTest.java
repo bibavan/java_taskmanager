@@ -44,11 +44,13 @@ class NotificationControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.findAndRegisterModules();
 
-        notification1 = new Notification(1L, testUserId, "Notification 1");
+        notification1 = new Notification(testUserId, "Notification 1");
+        notification1.setId(1L);
         notification1.setCreationDate(LocalDateTime.now().minusHours(1));
         notification1.setRead(false);
 
-        notification2 = new Notification(2L, testUserId, "Notification 2");
+        notification2 = new Notification(testUserId, "Notification 2");
+        notification2.setId(2L);
         notification2.setCreationDate(LocalDateTime.now().minusHours(2));
         notification2.setRead(true);
     }
@@ -56,7 +58,8 @@ class NotificationControllerTest {
     @Test
     void createNotification_whenValid_shouldReturnCreatedNotification() throws Exception {
         String message = "Test Notification Message";
-        Notification createdNotification = new Notification(3L, testUserId, message);
+        Notification createdNotification = new Notification(testUserId, message);
+        createdNotification.setId(3L);
         createdNotification.setCreationDate(LocalDateTime.now());
         createdNotification.setRead(false);
 
@@ -98,13 +101,19 @@ class NotificationControllerTest {
 
     @Test
     void markNotificationAsRead_whenNotificationExists_shouldReturnUpdatedNotification() throws Exception {
-        Notification updatedNotification = new Notification(notification1.getId(), testUserId, notification1.getMessage());
+        Notification originalNotificationForTest = new Notification(testUserId, notification1.getMessage());
+        originalNotificationForTest.setId(notification1.getId());
+        originalNotificationForTest.setCreationDate(notification1.getCreationDate());
+        originalNotificationForTest.setRead(false);
+
+        Notification updatedNotification = new Notification(testUserId, originalNotificationForTest.getMessage());
+        updatedNotification.setId(originalNotificationForTest.getId());
         updatedNotification.setRead(true);
-        updatedNotification.setCreationDate(notification1.getCreationDate());
+        updatedNotification.setCreationDate(originalNotificationForTest.getCreationDate());
 
-        when(notificationService.markAsRead(notification1.getId(), testUserId)).thenReturn(Optional.of(updatedNotification));
+        when(notificationService.markAsRead(originalNotificationForTest.getId(), testUserId)).thenReturn(Optional.of(updatedNotification));
 
-        mockMvc.perform(patch("/api/users/{userId}/notifications/{notificationId}/read", testUserId, notification1.getId())
+        mockMvc.perform(patch("/api/users/{userId}/notifications/{notificationId}/read", testUserId, originalNotificationForTest.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(notification1.getId()))

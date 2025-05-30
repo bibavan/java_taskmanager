@@ -1,0 +1,43 @@
+services:
+  postgres-db:
+    image: postgres:15 # Using PostgreSQL version 15
+    container_name: taskmanager-postgres-db
+    ports:
+      - "5432:5432" # Default PostgreSQL port
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Named volume for PostgreSQL data persistence
+    environment:
+      - POSTGRES_USER=taskadmin
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=taskmanager
+    networks:
+      - taskmanager-network
+
+  app: # Сервис Spring Boot приложения
+    build: . # Сборка из Dockerfile в текущей директории
+    container_name: taskmanager-app
+    restart: on-failure # Политика перезапуска контейнера в случае сбоя
+    ports:
+      - "8080:8080" # Маппинг порта приложения (8080 в контейнере на 8080 на хосте)
+    depends_on:
+      - postgres-db # Приложение запустится только после успешного старта сервиса postgres-db
+    environment:
+      # URL для подключения к PostgreSQL. 'postgres-db' - имя сервиса PostgreSQL в Docker сети.
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/taskmanager
+      - SPRING_DATASOURCE_USERNAME=taskadmin
+      - SPRING_DATASOURCE_PASSWORD=securepassword
+      # ddl-auto=update: Hibernate будет пытаться обновить схему БД в соответствии с сущностями JPA.
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      # Диалект Hibernate для PostgreSQL.
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      # Отключаем H2 консоль, так как H2 больше не используется.
+      # - SPRING_H2_CONSOLE_ENABLED=true 
+    networks:
+      - taskmanager-network
+
+volumes:
+  postgres_data: # Определяет именованный том 'postgres_data' для персистентности данных PostgreSQL
+
+networks:
+  taskmanager-network: # Определяет пользовательскую bridge-сеть для изоляции и связи контейнеров
+    driver: bridge 

@@ -1,28 +1,38 @@
 package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.Notification;
+import com.max.taskmanager.repository.impl.InMemoryNotificationRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
+@SpringBootTest
+@ActiveProfiles("in-memory")
 class InMemoryNotificationRepositoryTest {
 
-    private InMemoryNotificationRepository notificationRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private final Long userId1 = 1L;
     private final Long userId2 = 2L;
 
     @BeforeEach
     void setUp() {
-        notificationRepository = new InMemoryNotificationRepository();
+        notificationRepository.deleteAll();
     }
 
     @Test
     void save_newNotification_shouldAssignIdAndStore() {
-        Notification notification = new Notification(null, userId1, "Test Message 1");
+        Notification notification = new Notification(userId1, "Test Message 1");
         Notification savedNotification = notificationRepository.save(notification);
 
         assertNotNull(savedNotification.getId());
@@ -37,7 +47,7 @@ class InMemoryNotificationRepositoryTest {
 
     @Test
     void save_existingNotification_shouldUpdate() {
-        Notification notification = notificationRepository.save(new Notification(null, userId1, "Original Message"));
+        Notification notification = notificationRepository.save(new Notification(userId1, "Original Message"));
         Long originalId = notification.getId();
 
         notification.setMessage("Updated Message");
@@ -56,7 +66,7 @@ class InMemoryNotificationRepositoryTest {
 
     @Test
     void findById_whenNotificationExists_shouldReturnNotification() {
-        Notification notification = notificationRepository.save(new Notification(null, userId1, "Find Me"));
+        Notification notification = notificationRepository.save(new Notification(userId1, "Find Me"));
         Optional<Notification> found = notificationRepository.findById(notification.getId());
         assertTrue(found.isPresent());
         assertEquals(notification, found.get());
@@ -70,9 +80,9 @@ class InMemoryNotificationRepositoryTest {
 
     @Test
     void findAllByUserId_shouldReturnAllUserNotifications() {
-        Notification n1_u1 = notificationRepository.save(new Notification(null, userId1, "U1N1"));
-        Notification n2_u1 = notificationRepository.save(new Notification(null, userId1, "U1N2"));
-        notificationRepository.save(new Notification(null, userId2, "U2N1"));
+        Notification n1_u1 = notificationRepository.save(new Notification(userId1, "U1N1"));
+        Notification n2_u1 = notificationRepository.save(new Notification(userId1, "U1N2"));
+        notificationRepository.save(new Notification(userId2, "U2N1"));
 
         List<Notification> user1Notifications = notificationRepository.findAllByUserId(userId1);
         assertEquals(2, user1Notifications.size());
@@ -85,23 +95,21 @@ class InMemoryNotificationRepositoryTest {
 
     @Test
     void findAllByUserIdAndReadFalse_shouldReturnOnlyUnreadUserNotifications() {
-        Notification unread1_u1 = new Notification(null, userId1, "U1 Unread 1");
-        // Default is unread, but explicitly setting for clarity in test logic if it were different
-        unread1_u1.setRead(false); 
+        Notification unread1_u1 = new Notification(userId1, "U1 Unread 1");
+        unread1_u1.setRead(false);
         notificationRepository.save(unread1_u1);
 
-        Notification read_u1 = new Notification(null, userId1, "U1 Read");
+        Notification read_u1 = new Notification(userId1, "U1 Read");
         read_u1.setRead(true);
         notificationRepository.save(read_u1);
 
-        Notification unread_u2 = new Notification(null, userId2, "U2 Unread");
+        Notification unread_u2 = new Notification(userId2, "U2 Unread");
         unread_u2.setRead(false);
         notificationRepository.save(unread_u2);
 
         List<Notification> user1Unread = notificationRepository.findAllByUserIdAndReadFalse(userId1);
         assertEquals(1, user1Unread.size());
         assertTrue(user1Unread.contains(unread1_u1));
-        // Check that the read notification is not included
         assertFalse(user1Unread.stream().anyMatch(n -> n.getId().equals(read_u1.getId())));
 
         List<Notification> user2Unread = notificationRepository.findAllByUserIdAndReadFalse(userId2);

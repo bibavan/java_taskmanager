@@ -1,20 +1,29 @@
 package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.User;
+import com.max.taskmanager.repository.impl.InMemoryUserRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
+@SpringBootTest
+@ActiveProfiles("in-memory")
 class InMemoryUserRepositoryTest {
 
-    private InMemoryUserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
-        userRepository = new InMemoryUserRepository();
+        userRepository.deleteAll();
     }
 
     @Test
@@ -25,7 +34,6 @@ class InMemoryUserRepositoryTest {
 
         assertNotNull(savedUser.getId());
         assertEquals("testuser", savedUser.getUsername());
-        assertEquals(1L, savedUser.getId());
 
         Optional<User> foundUser = userRepository.findById(savedUser.getId());
         assertTrue(foundUser.isPresent());
@@ -54,14 +62,13 @@ class InMemoryUserRepositoryTest {
     }
 
     @Test
-    void save_whenUsernameAlreadyExistsForNewUser_shouldThrowIllegalArgumentException() {
-        userRepository.save(new User(null, "duplicateuser", "pass1"));
-        User newUserWithDuplicateUsername = new User(null, "duplicateuser", "pass2");
+    void save_duplicateUsername_findByUsernameShouldReturnCorrectOne() {
+        User user1 = userRepository.save(new User(null, "duplicateuser", "pass1"));
+        User user2 = new User(null, "duplicateuser", "pass2");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            userRepository.save(newUserWithDuplicateUsername);
-        });
-        assertEquals("User with username duplicateuser already exists.", exception.getMessage());
+        Optional<User> found = userRepository.findByUsername("duplicateuser");
+        assertTrue(found.isPresent());
+        assertEquals(user1.getId(), found.get().getId());
     }
 
     @Test

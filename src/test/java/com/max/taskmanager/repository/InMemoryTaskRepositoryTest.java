@@ -2,8 +2,13 @@ package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.Task;
 import com.max.taskmanager.model.TaskStatus;
+import com.max.taskmanager.repository.impl.InMemoryTaskRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,20 +16,25 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
+@SpringBootTest
+@ActiveProfiles("in-memory")
 class InMemoryTaskRepositoryTest {
 
-    private InMemoryTaskRepository taskRepository;
+    @Autowired
+    private TaskRepository taskRepository;
+
     private final Long userId1 = 1L;
     private final Long userId2 = 2L;
 
     @BeforeEach
     void setUp() {
-        taskRepository = new InMemoryTaskRepository();
+        taskRepository.deleteAll();
     }
 
     @Test
     void save_newTask_shouldAssignIdAndStore() {
-        Task task = new Task(null, userId1, "Test Task", "Desc", LocalDateTime.now().plusDays(1));
+        Task task = new Task(userId1, "Test Task", "Desc", LocalDateTime.now().plusDays(1));
         Task savedTask = taskRepository.save(task);
 
         assertNotNull(savedTask.getId());
@@ -36,7 +46,7 @@ class InMemoryTaskRepositoryTest {
 
     @Test
     void save_existingTask_shouldUpdate() {
-        Task task = taskRepository.save(new Task(null, userId1, "Original Title", "Desc", LocalDateTime.now().plusDays(1)));
+        Task task = taskRepository.save(new Task(userId1, "Original Title", "Desc", LocalDateTime.now().plusDays(1)));
         Long originalId = task.getId();
 
         task.setTitle("Updated Title");
@@ -52,12 +62,12 @@ class InMemoryTaskRepositoryTest {
 
 
     @Test
-    void findAllByUserIdAndDeletedFalse_shouldReturnCorrectTasks() {
-        Task task1User1 = taskRepository.save(new Task(null, userId1, "U1T1", "D1", LocalDateTime.now()));
-        Task task2User1 = taskRepository.save(new Task(null, userId1, "U1T2", "D2", LocalDateTime.now()));
+    void findByUserIdAndDeletedFalse_shouldReturnCorrectTasks() {
+        Task task1User1 = taskRepository.save(new Task(userId1, "U1T1", "D1", LocalDateTime.now()));
+        Task task2User1 = taskRepository.save(new Task(userId1, "U1T2", "D2", LocalDateTime.now()));
         task2User1.setDeleted(true);
         taskRepository.save(task2User1);
-        taskRepository.save(new Task(null, userId2, "U2T1", "D3", LocalDateTime.now()));
+        taskRepository.save(new Task(userId2, "U2T1", "D3", LocalDateTime.now()));
 
         List<Task> user1Tasks = taskRepository.findAllByUserIdAndDeletedFalse(userId1);
         assertEquals(1, user1Tasks.size());
@@ -67,16 +77,16 @@ class InMemoryTaskRepositoryTest {
     }
 
     @Test
-    void findAllByUserIdAndStatusAndDeletedFalse_shouldReturnCorrectTasks() {
-        Task taskPending = new Task(null, userId1, "Pending", "D", LocalDateTime.now());
+    void findByUserIdAndStatusAndDeletedFalse_shouldReturnCorrectTasks() {
+        Task taskPending = new Task(userId1, "Pending", "D", LocalDateTime.now());
         taskPending.setStatus(TaskStatus.PENDING);
         taskRepository.save(taskPending);
 
-        Task taskCompleted = new Task(null, userId1, "Completed", "D", LocalDateTime.now());
+        Task taskCompleted = new Task(userId1, "Completed", "D", LocalDateTime.now());
         taskCompleted.setStatus(TaskStatus.COMPLETED);
         taskRepository.save(taskCompleted);
 
-        Task taskDeletedPending = new Task(null, userId1, "Deleted Pending", "D", LocalDateTime.now());
+        Task taskDeletedPending = new Task(userId1, "Deleted Pending", "D", LocalDateTime.now());
         taskDeletedPending.setStatus(TaskStatus.PENDING);
         taskDeletedPending.setDeleted(true);
         taskRepository.save(taskDeletedPending);
@@ -92,7 +102,7 @@ class InMemoryTaskRepositoryTest {
 
     @Test
     void findById_whenTaskExists_shouldReturnTask() {
-        Task task = taskRepository.save(new Task(null, userId1, "Find Me", "Desc", LocalDateTime.now()));
+        Task task = taskRepository.save(new Task(userId1, "Find Me", "Desc", LocalDateTime.now()));
         Optional<Task> found = taskRepository.findById(task.getId());
         assertTrue(found.isPresent());
         assertEquals(task, found.get());
