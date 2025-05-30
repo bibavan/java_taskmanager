@@ -1,16 +1,15 @@
 services:
-  h2-db:
-    image: oscarfonts/h2:latest # Образ H2 базы данных
-    container_name: taskmanager-h2-db
+  postgres-db:
+    image: postgres:15 # Using PostgreSQL version 15
+    container_name: taskmanager-postgres-db
     ports:
-      - "8081:81"  # Веб-консоль H2 (доступна на хосте по порту 8081)
-      - "1521:1521" # TCP порт для подключения к БД H2 (доступен на хосте по порту 1521)
+      - "5432:5432" # Default PostgreSQL port
     volumes:
-      - h2_data:/opt/h2-data # Маппинг именованного тома Docker для сохранения данных H2 между перезапусками
+      - postgres_data:/var/lib/postgresql/data # Named volume for PostgreSQL data persistence
     environment:
-      # -ifNotExists: создает БД, если она не существует при старте сервера
-      # -webAllowOthers / -tcpAllowOthers: разрешают подключения к веб-консоли и по TCP с других хостов (внутри Docker сети)
-      - H2_OPTIONS=-webAllowOthers -tcpAllowOthers -ifNotExists
+      - POSTGRES_USER=taskadmin
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=taskmanager
     networks:
       - taskmanager-network
 
@@ -21,25 +20,23 @@ services:
     ports:
       - "8080:8080" # Маппинг порта приложения (8080 в контейнере на 8080 на хосте)
     depends_on:
-      - h2-db # Приложение запустится только после успешного старта сервиса h2-db
+      - postgres-db # Приложение запустится только после успешного старта сервиса postgres-db
     environment:
-      # URL для подключения к H2. 'h2-db' - имя сервиса H2 в Docker сети, '1521' - порт H2.
-      # 'taskmanagerdb' - имя файла БД (сервер H2 ищет его в /opt/h2-data/ внутри своего контейнера).
-      - SPRING_DATASOURCE_URL=jdbc:h2:tcp://h2-db:1521/taskmanagerdb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-      - SPRING_DATASOURCE_USERNAME=sa # Имя пользователя для H2
-      - SPRING_DATASOURCE_PASSWORD= # Пароль для H2 (пустой по умолчанию)
+      # URL для подключения к PostgreSQL. 'postgres-db' - имя сервиса PostgreSQL в Docker сети.
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/taskmanager
+      - SPRING_DATASOURCE_USERNAME=taskadmin
+      - SPRING_DATASOURCE_PASSWORD=securepassword
       # ddl-auto=update: Hibernate будет пытаться обновить схему БД в соответствии с сущностями JPA.
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      # Диалект Hibernate для H2. Spring Boot обычно определяет его автоматически для H2, но явное указание не повредит.
-      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
-      # Включает H2 консоль, доступную через само Spring Boot приложение (обычно по /h2-console).
-      # Полезно для быстрой проверки схемы или данных через порт приложения.
-      - SPRING_H2_CONSOLE_ENABLED=true
+      # Диалект Hibernate для PostgreSQL.
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      # Отключаем H2 консоль, так как H2 больше не используется.
+      # - SPRING_H2_CONSOLE_ENABLED=true 
     networks:
       - taskmanager-network
 
 volumes:
-  h2_data: # Определяет именованный том 'h2_data' для персистентности данных H2
+  postgres_data: # Определяет именованный том 'postgres_data' для персистентности данных PostgreSQL
 
 networks:
   taskmanager-network: # Определяет пользовательскую bridge-сеть для изоляции и связи контейнеров
