@@ -2,7 +2,7 @@ package com.max.taskmanager.service;
 
 import com.max.taskmanager.model.Notification;
 import com.max.taskmanager.repository.NotificationRepository;
-import com.max.taskmanager.repository.UserRepository; // Для проверки существования пользователя
+import com.max.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

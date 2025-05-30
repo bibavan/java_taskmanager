@@ -22,9 +22,9 @@ public class NotificationController {
     }
 
     @PostMapping
-    public ResponseEntity<Notification> createNotification(@PathVariable Long userId, @RequestBody String message) {
+    public ResponseEntity<Notification> createNotification(@PathVariable Long userId, @RequestBody Notification notificationRequest) {
         try {
-            Notification createdNotification = notificationService.createNotification(userId, message);
+            Notification createdNotification = notificationService.createNotification(userId, notificationRequest.getMessage());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdNotification);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

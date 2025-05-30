@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -40,9 +41,13 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> loginUser(@RequestBody UserLoginRequest loginRequest) {
-        User user = userService.loginUser(loginRequest.getUsername(), loginRequest.getPassword())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
-        return ResponseEntity.ok(user);
+    public ResponseEntity<?> loginUser(@RequestBody UserLoginRequest loginRequest) {
+        Optional<User> userOptional = userService.loginUser(loginRequest.getUsername(), loginRequest.getPassword());
+        if (userOptional.isPresent()) {
+            return ResponseEntity.ok(userOptional.get());
+        }
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("message", "Invalid username or password");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 } 

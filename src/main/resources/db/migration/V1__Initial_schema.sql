@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    creation_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    target_date TIMESTAMP WITHOUT TIME ZONE,
+    status VARCHAR(50) NOT NULL,
+    deleted BOOLEAN DEFAULT FALSE,
+    user_id BIGINT,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    message TEXT NOT NULL,
+    creation_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    user_id BIGINT,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
+); 

@@ -42,11 +42,14 @@ class TaskServiceImplTest {
     @BeforeEach
     void setUp() {
         testUser = new User(1L, "testuser", "password");
-        testTask1 = new Task(1L, 1L, "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
+
+        testTask1 = new Task(testUser.getId(), "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
+        testTask1.setId(1L);
         testTask1.setStatus(TaskStatus.PENDING);
         testTask1.setDeleted(false);
 
-        testTask2 = new Task(2L, 1L, "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
+        testTask2 = new Task(testUser.getId(), "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
+        testTask2.setId(2L);
         testTask2.setStatus(TaskStatus.COMPLETED);
         testTask2.setDeleted(false);
     }
@@ -112,7 +115,8 @@ class TaskServiceImplTest {
 
     @Test
     void getPendingUserTasks_whenUserExists_shouldReturnPendingNonDeletedTasks() {
-        Task pendingTask = new Task(3L, 1L, "Pending Task", "Desc Pending", LocalDateTime.now().plusDays(3));
+        Task pendingTask = new Task(testUser.getId(), "Pending Task", "Desc Pending", LocalDateTime.now().plusDays(3));
+        pendingTask.setId(3L);
         pendingTask.setStatus(TaskStatus.PENDING);
         pendingTask.setDeleted(false);
 
@@ -154,7 +158,9 @@ class TaskServiceImplTest {
 
     @Test
     void deleteTask_whenTaskDoesNotBelongToUser_shouldReturnEmpty() {
-        Task otherUserTask = new Task(5L, 2L, "Other User Task", "Desc", LocalDateTime.now());
+        Task otherUserTask = new Task(2L, "Other User Task", "Desc", LocalDateTime.now());
+        otherUserTask.setId(5L);
+
         when(taskRepository.findById(5L)).thenReturn(Optional.of(otherUserTask));
 
         Optional<Task> result = taskService.deleteTask(5L, 1L);

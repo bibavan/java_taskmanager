@@ -1,6 +1,7 @@
 package com.max.taskmanager.repository;
 
 import com.max.taskmanager.model.User;
+import com.max.taskmanager.repository.impl.InMemoryUserRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -10,11 +11,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryUserRepositoryTest {
 
-    private InMemoryUserRepository userRepository;
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
-        userRepository = new InMemoryUserRepository();
+        userRepository = new InMemoryUserRepositoryImpl();
     }
 
     @Test

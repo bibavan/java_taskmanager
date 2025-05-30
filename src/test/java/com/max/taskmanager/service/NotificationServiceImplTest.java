@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,11 +42,13 @@ class NotificationServiceImplTest {
     void setUp() {
         testUser = new User(1L, "testuser", "password");
 
-        testNotification1 = new Notification(1L, 1L, "Notification 1");
+        testNotification1 = new Notification(testUser.getId(), "Notification 1");
+        testNotification1.setId(1L);
         testNotification1.setRead(false);
         testNotification1.setCreationDate(LocalDateTime.now().minusHours(1));
 
-        testNotification2 = new Notification(2L, 1L, "Notification 2");
+        testNotification2 = new Notification(testUser.getId(), "Notification 2");
+        testNotification2.setId(2L);
         testNotification2.setRead(true);
         testNotification2.setCreationDate(LocalDateTime.now().minusHours(2));
     }
@@ -153,11 +154,12 @@ class NotificationServiceImplTest {
 
     @Test
     void markAsRead_whenNotificationDoesNotBelongToUser_shouldReturnEmpty() {
-        Notification otherUserNotification = new Notification(3L, 2L, "Other user's notification");
+        Notification otherUserNotification = new Notification(2L, "Other user's notification");
+        otherUserNotification.setId(3L);
         otherUserNotification.setRead(false);
         when(notificationRepository.findById(3L)).thenReturn(Optional.of(otherUserNotification));
 
-        Optional<Notification> result = notificationService.markAsRead(3L, 1L); // User 1 tries to read User 2's notification
+        Optional<Notification> result = notificationService.markAsRead(3L, 1L);
 
         assertFalse(result.isPresent());
         verify(notificationRepository, times(1)).findById(3L);

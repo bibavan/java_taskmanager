@@ -1,9 +1,9 @@
 package com.max.taskmanager.controller;
 
-import com.max.taskmanager.model.Notification;
-import com.max.taskmanager.service.NotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.max.taskmanager.model.Notification;
+import com.max.taskmanager.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +17,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.hasSize;
 
 @WebMvcTest(NotificationController.class)
 class NotificationControllerTest {
@@ -44,11 +44,13 @@ class NotificationControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.findAndRegisterModules();
 
-        notification1 = new Notification(1L, testUserId, "Notification 1");
+        notification1 = new Notification(testUserId, "Notification 1");
+        notification1.setId(1L);
         notification1.setCreationDate(LocalDateTime.now().minusHours(1));
         notification1.setRead(false);
 
-        notification2 = new Notification(2L, testUserId, "Notification 2");
+        notification2 = new Notification(testUserId, "Notification 2");
+        notification2.setId(2L);
         notification2.setCreationDate(LocalDateTime.now().minusHours(2));
         notification2.setRead(true);
     }
@@ -56,7 +58,8 @@ class NotificationControllerTest {
     @Test
     void createNotification_whenValid_shouldReturnCreatedNotification() throws Exception {
         String message = "Test Notification Message";
-        Notification createdNotification = new Notification(3L, testUserId, message);
+        Notification createdNotification = new Notification(testUserId, message);
+        createdNotification.setId(3L);
         createdNotification.setCreationDate(LocalDateTime.now());
         createdNotification.setRead(false);
 
@@ -65,7 +68,7 @@ class NotificationControllerTest {
 
         mockMvc.perform(post("/api/users/{userId}/notifications", testUserId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(message))
+                        .content(objectMapper.writeValueAsString(new Notification(testUserId, message))))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(3L))
@@ -98,7 +101,8 @@ class NotificationControllerTest {
 
     @Test
     void markNotificationAsRead_whenNotificationExists_shouldReturnUpdatedNotification() throws Exception {
-        Notification updatedNotification = new Notification(notification1.getId(), testUserId, notification1.getMessage());
+        Notification updatedNotification = new Notification(testUserId, notification1.getMessage());
+        updatedNotification.setId(notification1.getId());
         updatedNotification.setRead(true);
         updatedNotification.setCreationDate(notification1.getCreationDate());
 

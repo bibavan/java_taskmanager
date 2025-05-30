@@ -1,12 +1,12 @@
 package com.max.taskmanager.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.max.taskmanager.dto.CreateTaskRequest;
 import com.max.taskmanager.dto.UpdateTaskStatusRequest;
 import com.max.taskmanager.model.Task;
 import com.max.taskmanager.model.TaskStatus;
 import com.max.taskmanager.service.TaskService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,15 +20,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TaskController.class)
 class TaskControllerTest {
@@ -51,12 +49,11 @@ class TaskControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.findAndRegisterModules(); // Good practice to register all modules
 
-        task1 = new Task(1L, testUserId, "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
-        task1.setCreationDate(LocalDateTime.now());
-        task1.setStatus(TaskStatus.PENDING);
+        task1 = new Task(testUserId, "Task 1", "Desc 1", LocalDateTime.now().plusDays(1));
+        task1.setId(1L);
 
-        task2 = new Task(2L, testUserId, "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
-        task2.setCreationDate(LocalDateTime.now());
+        task2 = new Task(testUserId, "Task 2", "Desc 2", LocalDateTime.now().plusDays(2));
+        task2.setId(2L);
         task2.setStatus(TaskStatus.COMPLETED);
     }
 
@@ -68,9 +65,8 @@ class TaskControllerTest {
         LocalDateTime targetDate = LocalDateTime.of(2025, 1, 1, 10, 0);
         createTaskRequest.setTargetDate(targetDate);
 
-        Task createdTask = new Task(3L, testUserId, "New Task", "New Description", targetDate);
-        createdTask.setCreationDate(LocalDateTime.now());
-        createdTask.setStatus(TaskStatus.PENDING);
+        Task createdTask = new Task(testUserId, "New Task", "New Description", targetDate);
+        createdTask.setId(3L);
 
         when(taskService.createTask(eq(testUserId), eq("New Task"), eq("New Description"), eq(targetDate)))
                 .thenReturn(createdTask);
@@ -171,12 +167,15 @@ class TaskControllerTest {
         UpdateTaskStatusRequest statusRequest = new UpdateTaskStatusRequest();
         statusRequest.setStatus(TaskStatus.COMPLETED);
 
-        Task updatedTask = new Task(task1.getId(), testUserId, task1.getTitle(), task1.getDescription(), task1.getTargetDate());
+        Task updatedTask = new Task(testUserId, task1.getTitle(), task1.getDescription(), task1.getTargetDate());
+        updatedTask.setId(task1.getId());
         updatedTask.setStatus(TaskStatus.COMPLETED);
-        updatedTask.setCreationDate(task1.getCreationDate()); // Keep original creation date
+        if (task1.getCreationDate() != null) {
+            updatedTask.setCreationDate(task1.getCreationDate());
+        }
 
         when(taskService.updateTaskStatus(task1.getId(), testUserId, TaskStatus.COMPLETED))
-            .thenReturn(Optional.of(updatedTask));
+                .thenReturn(Optional.of(updatedTask));
 
         mockMvc.perform(patch("/api/users/{userId}/tasks/{taskId}/status", testUserId, task1.getId())
                         .contentType(MediaType.APPLICATION_JSON)
