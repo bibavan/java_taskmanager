@@ -5,6 +5,10 @@ import com.max.taskmanager.model.TaskStatus;
 import com.max.taskmanager.repository.TaskRepository;
 import com.max.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,6 +28,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @CachePut(value = "tasks", key = "#result.id + '_' + #result.userId")
+    @CacheEvict(value = {"userTasks", "pendingUserTasks"}, allEntries = true) // Invalidate lists when a new task is created
     public Task createTask(Long userId, String title, String description, LocalDateTime targetDate) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found. Cannot create task."));
@@ -40,12 +46,14 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Cacheable(value = "tasks", key = "#taskId + '_' + #userId", unless = "#result == null")
     public Optional<Task> getTaskByIdAndUserId(Long taskId, Long userId) {
         return taskRepository.findById(taskId)
                 .filter(task -> task.getUserId().equals(userId) && !task.isDeleted());
     }
 
     @Override
+    @Cacheable(value = "userTasks", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<Task> getAllUserTasks(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found."));
@@ -53,6 +61,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Cacheable(value = "pendingUserTasks", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<Task> getPendingUserTasks(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found."));
@@ -60,6 +69,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "tasks", key = "#taskId + '_' + #userId"),
+        @CacheEvict(value = {"userTasks", "pendingUserTasks"}, allEntries = true) // Invalidate lists
+    })
     public Optional<Task> deleteTask(Long taskId, Long userId) {
         Optional<Task> taskOpt = taskRepository.findById(taskId);
         if (taskOpt.isPresent()) {
@@ -73,6 +86,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Caching(put = {
+        @CachePut(value = "tasks", key = "#taskId + '_' + #userId", unless = "#result == null || !#result.present")
+    }, evict = {
+        @CacheEvict(value = {"userTasks", "pendingUserTasks"}, allEntries = true) // Invalidate lists
+    })
     public Optional<Task> updateTaskStatus(Long taskId, Long userId, TaskStatus status) {
         Optional<Task> taskOpt = taskRepository.findById(taskId);
         if (taskOpt.isPresent()) {

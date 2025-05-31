@@ -13,6 +13,14 @@ services:
     networks:
       - taskmanager-network
 
+  redis:
+    image: redis:alpine
+    container_name: taskmanager-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - taskmanager-network
+
   app: # Сервис Spring Boot приложения
     build: . # Сборка из Dockerfile в текущей директории
     container_name: taskmanager-app
@@ -21,6 +29,7 @@ services:
       - "8080:8080" # Маппинг порта приложения (8080 в контейнере на 8080 на хосте)
     depends_on:
       - postgres-db # Приложение запустится только после успешного старта сервиса postgres-db
+      - redis
     environment:
       # URL для подключения к PostgreSQL. 'postgres-db' - имя сервиса PostgreSQL в Docker сети.
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/taskmanager
@@ -32,6 +41,8 @@ services:
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
       # Отключаем H2 консоль, так как H2 больше не используется.
       # - SPRING_H2_CONSOLE_ENABLED=true 
+      - SPRING_PROFILES_ACTIVE=redis # Activate redis profile
+      - SPRING_REDIS_HOST=redis # Connect to redis service in Docker network
     networks:
       - taskmanager-network
 
