@@ -12,4 +12,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findAllByUserIdAndStatusAndDeletedFalse(Long userId, TaskStatus status);
 
+    List<Task> findAllByStatusAndDeletedFalse(TaskStatus status);
+
 }
