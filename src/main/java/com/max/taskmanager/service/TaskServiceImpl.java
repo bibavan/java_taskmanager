@@ -12,6 +12,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,9 +25,13 @@ import java.util.Optional;
 @Service
 public class TaskServiceImpl implements TaskService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TaskServiceImpl.class);
+
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final RabbitTemplate rabbitTemplate;
+
+    private TaskService self;
 
     @Value("${app.rabbitmq.exchange.name:#{null}}")
     private String exchangeName;
@@ -36,6 +44,11 @@ public class TaskServiceImpl implements TaskService {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.rabbitTemplate = rabbitTemplateOpt.orElse(null);
+    }
+
+    @Autowired
+    public void setSelf(@Lazy TaskService self) {
+        this.self = self;
     }
 
     @Override
@@ -114,7 +127,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Caching(put = {
-        @CachePut(value = "tasks", key = "#taskId + '_' + #userId", unless = "#result == null || !#result.present")
+        @CachePut(value = "tasks", key = "#taskId + '_' + #userId")
     }, evict = {
         @CacheEvict(value = {"userTasks", "pendingUserTasks"}, allEntries = true)
     })
@@ -129,4 +142,43 @@ public class TaskServiceImpl implements TaskService {
         }
         return Optional.empty();
     }
+
+    @Override
+    @CacheEvict(value = "tasks", key = "#taskId + '_' + #userId")
+    public void evictTaskCacheById(Long taskId, Long userId) {
+        logger.debug("Evicting task from cache. TaskId: {}, UserId: {}", taskId, userId);
+        // Method body is empty as @CacheEvict handles the logic
+    }
+
+    @Scheduled(fixedRate = 15000) // Set to 15 seconds
+    public void checkAndProcessOverdueTasks() {
+        logger.info("Checking for overdue tasks...");
+        List<Task> pendingTasks = taskRepository.findAllByStatusAndDeletedFalse(TaskStatus.PENDING);
+
+        LocalDateTime now = LocalDateTime.now();
+        int overdueCount = 0;
+
+        for (Task task : pendingTasks) {
+            if (task.getTargetDate() != null && task.getTargetDate().isBefore(now)) {
+                logger.info("Task ID: {} (User ID: {}) is overdue. Current status: {}. Target date: {}", 
+                            task.getId(), task.getUserId(), task.getStatus(), task.getTargetDate());
+                task.setStatus(TaskStatus.OVERDUE);
+                taskRepository.save(task);
+                // Evict from cache after updating status using self-injected proxy
+                if (self != null) {
+                    self.evictTaskCacheById(task.getId(), task.getUserId()); 
+                } else {
+                    logger.warn("Self-injected TaskService is null. Cache eviction might not work as expected for task ID: {}", task.getId());
+                }
+                overdueCount++;
+                logger.info("Task ID: {} status updated to OVERDUE.", task.getId());
+            }
+        }
+        if (overdueCount > 0) {
+            logger.info("Processed {} overdue tasks.", overdueCount);
+        } else {
+            logger.info("No overdue tasks found.");
+        }
+    }
+    
 }

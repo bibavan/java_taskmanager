@@ -70,7 +70,7 @@ services:
       interval: 30s # How often to run the check
       timeout: 10s # How long to wait for a response
       retries: 3 # How many times to retry before marking as unhealthy
-      start_period: 10s # How long to wait before starting health checks (allow app to start)
+      start_period: 5s # How long to wait before starting health checks (allow app to start)
 
 volumes:
   postgres_data: # Определяет именованный том 'postgres_data' для персистентности данных PostgreSQL

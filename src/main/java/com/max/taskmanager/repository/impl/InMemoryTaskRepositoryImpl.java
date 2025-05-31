@@ -44,6 +44,13 @@ public class InMemoryTaskRepositoryImpl implements TaskRepository {
     }
 
     @Override
+    public List<Task> findAllByStatusAndDeletedFalse(TaskStatus status) {
+        return taskStore.values().stream()
+                .filter(task -> task.getStatus() == status && !task.isDeleted())
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public <S extends Task> S save(S entity) {
         if (entity.getId() == null) {
             entity.setId(idGenerator.incrementAndGet());

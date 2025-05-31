@@ -13,4 +13,5 @@ public interface TaskService {
     List<Task> getPendingUserTasks(Long userId); // Все НЕ удаленные PENDING задачи пользователя
     Optional<Task> deleteTask(Long taskId, Long userId); // Мягкое удаление
     Optional<Task> updateTaskStatus(Long taskId, Long userId, TaskStatus status); // Для изменения статуса
+    void evictTaskCacheById(Long taskId, Long userId); // New method for cache eviction
 }
