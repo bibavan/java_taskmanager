@@ -4,6 +4,7 @@ import com.max.taskmanager.model.Notification;
 import com.max.taskmanager.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,7 +22,7 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
-    @PostMapping
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Notification> createNotification(@PathVariable Long userId, @RequestBody String message) {
         try {
             Notification createdNotification = notificationService.createNotification(userId, message);
@@ -31,7 +32,7 @@ public class NotificationController {
         }
     }
 
-    @GetMapping
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Notification>> getAllUserNotifications(@PathVariable Long userId) {
          try {
             List<Notification> notifications = notificationService.getAllUserNotifications(userId);
@@ -41,7 +42,7 @@ public class NotificationController {
         }
     }
 
-    @GetMapping("/pending")
+    @GetMapping(value = "/pending", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Notification>> getPendingUserNotifications(@PathVariable Long userId) {
         try {
             List<Notification> notifications = notificationService.getPendingUserNotifications(userId);
@@ -51,7 +52,7 @@ public class NotificationController {
         }
     }
 
-    @PatchMapping("/{notificationId}/read")
+    @PatchMapping(value = "/{notificationId}/read", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Notification> markNotificationAsRead(@PathVariable Long userId, @PathVariable Long notificationId) {
         Notification notification = notificationService.markAsRead(notificationId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found or access denied"));
