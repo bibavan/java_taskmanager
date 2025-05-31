@@ -21,6 +21,18 @@ services:
     networks:
       - taskmanager-network
 
+  rabbitmq: # Новый сервис RabbitMQ
+    image: rabbitmq:3-management
+    container_name: taskmanager-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest # Можно оставить по умолчанию или задать свои
+      RABBITMQ_DEFAULT_PASS: guest # Можно оставить по умолчанию или задать свои
+    networks:
+      - taskmanager-network
+
   app: # Сервис Spring Boot приложения
     build: . # Сборка из Dockerfile в текущей директории
     container_name: taskmanager-app
@@ -30,6 +42,7 @@ services:
     depends_on:
       - postgres-db # Приложение запустится только после успешного старта сервиса postgres-db
       - redis
+      - rabbitmq      # Добавлена зависимость от rabbitmq
     environment:
       # URL для подключения к PostgreSQL. 'postgres-db' - имя сервиса PostgreSQL в Docker сети.
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/taskmanager
@@ -41,10 +54,23 @@ services:
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
       # Отключаем H2 консоль, так как H2 больше не используется.
       # - SPRING_H2_CONSOLE_ENABLED=true 
-      - SPRING_PROFILES_ACTIVE=redis # Activate redis profile
+      - SPRING_PROFILES_ACTIVE=redis,rabbitmq # Activate redis AND rabbitmq profiles
       - SPRING_REDIS_HOST=redis # Connect to redis service in Docker network
+      # Добавляем конфигурацию для RabbitMQ (если используется стандартный listener)
+      # Если у вас есть application-rabbitmq.properties, эти переменные могут быть не нужны здесь,
+      # или могут переопределять значения из файла, если ваш Spring Boot настроен на это.
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     networks:
       - taskmanager-network
+    healthcheck: # Health check for the app service
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"] # Command to check health
+      interval: 30s # How often to run the check
+      timeout: 10s # How long to wait for a response
+      retries: 3 # How many times to retry before marking as unhealthy
+      start_period: 10s # How long to wait before starting health checks (allow app to start)
 
 volumes:
   postgres_data: # Определяет именованный том 'postgres_data' для персистентности данных PostgreSQL
